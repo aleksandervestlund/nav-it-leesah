@@ -1,10 +1,9 @@
 from pathlib import Path
-from typing import Dict
 import yaml
 from yaml.loader import SafeLoader
 
 
-def base_config(bootstrap_servers: str) -> Dict:
+def base_config(bootstrap_servers: str) -> dict[str, str]:
     config = {"bootstrap.servers": bootstrap_servers}
     if "localhost" not in bootstrap_servers:
         # CA_PATH = Path("certs/ca.pem")
@@ -24,7 +23,9 @@ def base_config(bootstrap_servers: str) -> Dict:
     return config
 
 
-def consumer_config(bootstrap_servers: str, group_id: str, auto_commit: bool):
+def consumer_config(
+    bootstrap_servers: str, group_id: str, auto_commit: bool
+) -> dict[str, str]:
     config = base_config(bootstrap_servers)
     return config | {
         "group.id": group_id,
@@ -33,5 +34,5 @@ def consumer_config(bootstrap_servers: str, group_id: str, auto_commit: bool):
     }
 
 
-def producer_config(bootstrap_servers: str):
+def producer_config(bootstrap_servers: str) -> dict[str, str]:
     return base_config(bootstrap_servers) | {"broker.address.family": "v4"}

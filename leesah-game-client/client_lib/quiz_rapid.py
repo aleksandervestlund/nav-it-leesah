@@ -65,34 +65,31 @@ class QuizParticipant(ABC):
         self._team_name = team_name
 
     @abstractmethod
-    def handle_question(self, question: Question):
-        """
-        handle questions received from the quiz topic.
+    def handle_question(self, question: Question) -> None:
+        """handle questions received from the quiz topic.
 
         Parameters
         ----------
             question : Question
                 question issued by the quizmaster
-
         """
         pass
 
     @abstractmethod
-    def handle_assessment(self, assessment: Assessment):
-        """
-        handle assessments received from the quiz topic.
+    def handle_assessment(self, assessment: Assessment) -> None:
+        """handle assessments received from the quiz topic.
 
         Parameters
         ----------
             assessment : Assessment
                 assessment of an answer by the quizmaster
-
         """
         pass
 
-    def publish_answer(self, question_id: str, category: str, answer: str):
-        """
-        publishes an answer to a specific question id with a category
+    def publish_answer(
+        self, question_id: str, category: str, answer: str
+    ) -> None:
+        """publishes an answer to a specific question id with a category
 
         Parameters
         ----------
@@ -102,21 +99,22 @@ class QuizParticipant(ABC):
                 the category of the question to be answered
             answer : str
                 the answer to the question asked
-
         """
         self.publish(Answer(question_id, category, self._team_name, answer))
 
     def publish(self, answer: Answer):
         self._outbox.add(answer)
 
-    def messages(self) -> Set[Answer]:
+    def messages(self) -> set[Answer]:
         out = self._outbox
         self._outbox = set()
         return out
 
 
 class QuizRapid:
-    """Mediates messages to and from the quiz rapid on behalf of the quiz participant"""
+    """Mediates messages to and from the quiz rapid on behalf of the
+    quiz participant
+    """
 
     def __init__(
         self,
@@ -131,9 +129,8 @@ class QuizRapid:
         logg_answers=False,
         short_log_line=False,
         log_ignore_list=None,
-    ):
-        """
-        Constructs all the necessary attributes for the QuizRapid object.
+    ) -> None:
+        """Constructs all the necessary attributes for the QuizRapid object.
 
         Parameters
         ----------
@@ -180,9 +177,8 @@ class QuizRapid:
         self._short_log_line = short_log_line
         self._log_ignore_list = log_ignore_list
 
-    def run(self, participant: QuizParticipant):
-        msg = self._consumer.poll(timeout=1)
-        if msg is None:
+    def run(self, participant: QuizParticipant) -> None:
+        if (msg := self._consumer.poll(timeout=1)) is None:
             return
         try:
             msg = deserialize(msg.value())
@@ -222,15 +218,15 @@ class QuizRapid:
         if self._commit_offset:
             self.commit_offset()
 
-    def commit_offset(self):
+    def commit_offset(self) -> None:
         self._consumer.commit()
 
-    def close(self):
+    def close(self) -> None:
         self.running = False
         self._producer.flush()
         self._consumer.close()
 
-    def _logg_question(self, question: Question):
+    def _logg_question(self, question: Question) -> None:
         if self._logg_questions and (
             self._log_ignore_list is None
             or question.category not in self._log_ignore_list
@@ -240,14 +236,11 @@ class QuizRapid:
                 question_dict.pop("messageId")
                 question_dict.pop("type")
             print(
-                "\x1b[33;20m [{}][Q]\x1b[0m {}{}\x1b[0m".format(
-                    datetime.now().time().isoformat(),
-                    QUESTION_LOG_COLOR,
-                    json.dumps(question_dict),
-                )
+                f"\x1b[33;20m [{datetime.now().time().isoformat()}][Q]\x1b[0m "
+                f"{QUESTION_LOG_COLOR}{json.dumps(question_dict)}\x1b[0m"
             )
 
-    def _logg_answer(self, answer: Answer):
+    def _logg_answer(self, answer: Answer) -> None:
         if self._logg_answers and (
             self._log_ignore_list is None
             or answer.category not in self._log_ignore_list
@@ -259,9 +252,6 @@ class QuizRapid:
                 answer_dict.pop("questionId")
                 answer_dict.pop("teamName")
             print(
-                "\x1b[33;20m [{}][A]\x1b[0m {}{}\x1b[0m".format(
-                    datetime.now().time().isoformat(),
-                    ANSWER_LOG_COLOR,
-                    json.dumps(answer_dict),
-                )
+                f"\x1b[33;20m [{datetime.now().time().isoformat()}][A]\x1b[0m "
+                f"{ANSWER_LOG_COLOR}{json.dumps(answer_dict)}\x1b[0m"
             )

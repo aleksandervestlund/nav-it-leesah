@@ -21,16 +21,17 @@ CONSUMER_GROUP_ID = f"cg-leesah-team-${TEAM_NAME}-1"
 
 
 class MyParticipant(quiz_rapid.QuizParticipant):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(TEAM_NAME)
         self.saldo = 0
         self.previous_questions: set[str] = set()
 
-    def handle_question(self, question: quiz_rapid.Question):
+    def handle_question(self, question: quiz_rapid.Question) -> None:
         svar = ""
         match question.category:
             case "register_team":
                 self.handle_register_team(question)
+                return
             case "ping-pong":
                 svar = "pong"
             case "arithmetic":
@@ -132,12 +133,12 @@ class MyParticipant(quiz_rapid.QuizParticipant):
             answer=svar,
         )
 
-    def handle_assessment(self, assessment: quiz_rapid.Assessment):
+    def handle_assessment(self, assessment: quiz_rapid.Assessment) -> None:
         pass
 
     # ---------------------------------------------------------------------------- Question handlers
 
-    def handle_register_team(self, question: quiz_rapid.Question):
+    def handle_register_team(self, question: quiz_rapid.Question) -> None:
         self.publish_answer(
             question_id=question.messageId,
             category=question.category,
@@ -145,7 +146,7 @@ class MyParticipant(quiz_rapid.QuizParticipant):
         )
 
 
-def main():
+def main() -> tuple[MyParticipant, quiz_rapid.QuizRapid]:
     rapid = quiz_rapid.QuizRapid(
         team_name=TEAM_NAME,
         topic=QUIZ_TOPIC,
