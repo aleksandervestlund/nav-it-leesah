@@ -78,7 +78,6 @@ class QuizParticipant(ABC):
             question : Question
                 question issued by the quizmaster
         """
-        pass
 
     @abstractmethod
     def handle_assessment(self, assessment: Assessment) -> None:
@@ -89,7 +88,6 @@ class QuizParticipant(ABC):
             assessment : Assessment
                 assessment of an answer by the quizmaster
         """
-        pass
 
     def publish_answer(
         self, question_id: str, category: str, answer: str
