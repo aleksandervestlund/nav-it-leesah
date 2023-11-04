@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from json import JSONDecodeError
-from typing import Set
 
 from confluent_kafka import Consumer, Producer
 
@@ -14,11 +13,17 @@ from .config import ENCODING
 from .kafka import consumer_config, producer_config
 from .schemas import Question as SchemaQuestion, Assessment as SchemaAssessment
 
+
 ANSWER_LOG_COLOR = "\u001b[34m"
 QUESTION_LOG_COLOR = "\u001b[32m"
 
-deserialize = lambda value: json.loads(value.decode(ENCODING))
-serialize = lambda value: json.dumps(value).encode(ENCODING)
+
+def deserialize(value: bytes) -> dict[str, str]:
+    return json.loads(value.decode(ENCODING))
+
+
+def serialize(value: dict[str, str]) -> bytes:
+    return json.dumps(value).encode(ENCODING)
 
 
 @dataclass(eq=True, frozen=True)
@@ -60,7 +65,7 @@ class Assessment:
 
 
 class QuizParticipant(ABC):
-    def __init__(self, team_name: str):
+    def __init__(self, team_name: str) -> None:
         self._outbox = set()
         self._team_name = team_name
 
@@ -102,7 +107,7 @@ class QuizParticipant(ABC):
         """
         self.publish(Answer(question_id, category, self._team_name, answer))
 
-    def publish(self, answer: Answer):
+    def publish(self, answer: Answer) -> None:
         self._outbox.add(answer)
 
     def messages(self) -> set[Answer]:
@@ -123,14 +128,15 @@ class QuizRapid:
         bootstrap_servers: str,
         consumer_group_id: str,
         auto_commit: bool = True,
-        producer=None,
-        consumer=None,
-        logg_questions=False,
-        logg_answers=False,
-        short_log_line=False,
-        log_ignore_list=None,
+        producer: Producer = None,
+        consumer: Consumer = None,
+        logg_questions: bool = False,
+        logg_answers: bool = False,
+        short_log_line: bool = False,
+        log_ignore_list: list[str] | None = None,
     ) -> None:
-        """Constructs all the necessary attributes for the QuizRapid object.
+        """Constructs all the necessary attributes for the QuizRapid
+        object.
 
         Parameters
         ----------
@@ -149,13 +155,17 @@ class QuizRapid:
             consumer : Consumer, optional
                 specify a custom consumer to use (Default None)
             logg_questions : bool, optional
-                should the QuizRapid logg incoming questions to the terminal (Default False)
+                should the QuizRapid logg incoming questions to the
+                terminal (Default False)
             logg_answers : bool, optional
-                should the QuizRapid logg outgoing answers to the terminal (Default False)
+                should the QuizRapid logg outgoing answers to the
+                terminal (Default False)
             short_log_line : bool, optional
-                for enabled loggers, should the output be shortened keeping only essential fields (Default False)
+                for enabled loggers, should the output be shortened
+                keeping only essential fields (Default False)
             log_ignore_list : list, optional
-                for enabled loggers, should any question categories be ignored (Default None)
+                for enabled loggers, should any question categories be
+                ignored (Default None)
         """
         self.running = True
         if consumer is None:
