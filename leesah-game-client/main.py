@@ -8,7 +8,8 @@ from client_lib.config import HOSTED_KAFKA
 # 1. Set `TEAM_NAME` to your preferred team name
 # 2. Set `HEX_CODE` to your preferred team color
 # 3. Set `QUIZ_TOPIC` to the topic name provided by the course administrators
-# 4. Make sure you have downloaded and unpacked the credential files in the certs/ dir
+# 4. Make sure you have downloaded and unpacked the credential files in the
+#    `certs/` directory
 
 # Config ######################################################################
 
@@ -23,120 +24,118 @@ CONSUMER_GROUP_ID = f"cg-leesah-team-${TEAM_NAME}-1"
 class MyParticipant(quiz_rapid.QuizParticipant):
     def __init__(self) -> None:
         super().__init__(TEAM_NAME)
-        self.saldo = 0
+        self.balance = 0
         self.previous_questions: set[str] = set()
 
     def handle_question(self, question: quiz_rapid.Question) -> None:
-        svar = ""
+        reply = ""
         match question.category:
             case "register_team":
                 self.handle_register_team(question)
                 return
             case "ping-pong":
-                svar = "pong"
+                reply = "pong"
             case "arithmetic":
-                ting = question.question.split()
-                tall_1 = int(ting[0])
-                tall_2 = int(ting[2])
+                substrings = question.question.split()
+                number_1 = int(substrings[0])
+                number_2 = int(substrings[2])
 
-                match ting[1]:
+                match substrings[1]:
                     case "+":
-                        svar = str(tall_1 + tall_2)
+                        reply = str(number_1 + number_2)
                     case "-":
-                        svar = str(tall_1 - tall_2)
+                        reply = str(number_1 - number_2)
                     case "*":
-                        svar = str(tall_1 * tall_2)
+                        reply = str(number_1 * number_2)
                     case "/":
-                        svar = str(tall_1 // tall_2)
+                        reply = str(number_1 // number_2)
             case "NAV":
                 if question.question.endswith(
-                    "man informasjon om rekruttering til NAV IT?"
+                    "Hvor finner man informasjon om rekruttering til NAV IT?"
                 ):
-                    svar = "detsombetyrnoe.no"
+                    reply = "detsombetyrnoe.no"
                 elif question.question.endswith(
-                    "applikasjonsplattformen til NAV?"
+                    "Hva heter applikasjonsplattformen til NAV?"
                 ):
-                    svar = "nais"
+                    reply = "nais"
                 elif question.question.endswith(
                     "Hva heter NAV-direkt\u00f8ren?"
-                ):
-                    svar = "Hans Christian Holte"
+                ) or question.question.endswith("Hva heter NAV-direktøren?"):
+                    reply = "Hans Christian Holte"
                 elif question.question.endswith("Hvor har vi kontor?"):
-                    svar = "Oslo"
+                    reply = "Oslo"
                 elif question.question.endswith(
                     "Hva heter designsystemet v\u00e5rt?"
+                ) or question.question.endswith(
+                    "Hva heter designsystemet vårt?"
                 ):
-                    svar = "Aksel"
+                    reply = "Aksel"
                 elif question.question.endswith(
                     "Hvor mye er 1G per 1. mai 2023?"
                 ):
-                    svar = "118620"
+                    reply = "118620"
             case "is-a-prime":
-                tall = int(question.question.split()[-1])
-                for i in range(2, tall):
-                    if tall % i == 0:
-                        svar = str(False)
+                number = int(question.question.split()[-1])
+                for i in range(2, number):
+                    if number % i == 0:
+                        reply = str(False)
                         break
                 else:
-                    svar = str(True)
+                    reply = str(True)
             case "transactions":
-                ting = question.question.split()
-                handling = ting[0]
-                beloep = int(ting[1])
+                substrings = question.question.split()
+                action = substrings[0]
+                amount = int(substrings[1])
 
-                match handling:
+                match action:
                     case "INNSKUDD":
-                        self.saldo += beloep
+                        self.balance += amount
                     case "UTTREKK":
-                        self.saldo -= beloep
+                        self.balance -= amount
 
-                svar = str(self.saldo)
+                reply = str(self.balance)
             case "base64":
-                svar = base64.b64decode(question.question.split()[-1]).decode(
+                reply = base64.b64decode(question.question.split()[-1]).decode(
                     "utf-8"
                 )
             case "grunnbelop":
-                dato = question.question.split()[-1]
-                svar = str(
+                date = question.question.split()[-1]
+                reply = str(
                     requests.get(
-                        f"https://g.nav.no/api/v1/grunnbeloep?dato={dato}",
+                        f"https://g.nav.no/api/v1/grunnbeloep?dato={date}",
                         timeout=100,
                     ).json()["grunnbeloep"]
                 )
             case "min-max":
-                idx = question.question.index("[") + 1
+                numbers = [
+                    int(number)
+                    for number in question.question[
+                        question.question.index("[") + 1 : -1
+                    ].split(",")
+                ]
 
                 match question.question.split()[0]:
                     case "LAVESTE":
-                        svar = str(
-                            min(
-                                int(i)
-                                for i in question.question[idx:-1].split(",")
-                            )
-                        )
+                        reply = str(min(numbers))
                     case "HØYESTE" | "HOYESTE":
-                        svar = str(
-                            max(
-                                int(i)
-                                for i in question.question[idx:-1].split(",")
-                            )
-                        )
+                        reply = str(max(numbers))
             case "deduplication":
                 if question.question in self.previous_questions:
                     return
+
                 self.previous_questions.add(question.question)
-                svar = "you won't dupe me!"
+                reply = "you won't dupe me!"
 
         self.publish_answer(
             question_id=question.messageId,
             category=question.category,
-            answer=svar,
+            answer=reply,
         )
 
     def handle_assessment(self, assessment: quiz_rapid.Assessment) -> None:
         pass
 
-    # ---------------------------------------------------------------------------- Question handlers
+    # ------------------------------------------------------- Question handlers
 
     def handle_register_team(self, question: quiz_rapid.Question) -> None:
         self.publish_answer(
